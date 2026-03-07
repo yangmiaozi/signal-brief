@@ -239,39 +239,45 @@ function parseJSON(text, key) {
   } catch { return null; }
 }
 
+const ANTHROPIC_URL = "https://api.anthropic.com/v1/messages";
 const OPENROUTER_MODEL = "meta-llama/llama-3.3-70b-instruct:free";
 
-async function callClaude(messages) {
-  const body = {
-    model: OPENROUTER_MODEL,
-    messages,
-  };
-
-  // Try Vercel proxy first (has OPENROUTER_API_KEY), then direct OpenRouter (needs key in browser)
-  let data;
-
+// In Claude.ai preview: Anthropic API is handled automatically (no key needed)
+// On Vercel: /api/claude proxy forwards to OpenRouter using server-side API key
+async function callClaude(userContent) {
+  // Try Vercel proxy first (OpenRouter, free)
   try {
     const res = await fetch("/api/claude", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
+      body: JSON.stringify({
+        model: OPENROUTER_MODEL,
+        messages: [{ role: "user", content: userContent }],
+      }),
     });
-    data = await res.json();
-    if (data?.choices?.[0]?.message?.content) return data.choices[0].message.content;
+    if (res.ok) {
+      const data = await res.json();
+      const text = data?.choices?.[0]?.message?.content;
+      if (text) return text;
+    }
   } catch (_) {}
 
-  // Fallback: direct OpenRouter (Claude.ai preview)
-  const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+  // Fallback: Anthropic API directly (works in Claude.ai preview — auth auto-handled)
+  const res = await fetch(ANTHROPIC_URL, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "HTTP-Referer": "https://signal-brief.vercel.app",
-      "X-Title": "Signal Brief",
+      "anthropic-version": "2023-06-01",
     },
-    body: JSON.stringify(body),
+    body: JSON.stringify({
+      model: "claude-haiku-4-5-20251001",
+      max_tokens: 1500,
+      messages: [{ role: "user", content: userContent }],
+    }),
   });
-  data = await res.json();
-  if (data?.choices?.[0]?.message?.content) return data.choices[0].message.content;
+  const data = await res.json();
+  const text = data?.content?.find((b) => b.type === "text")?.text;
+  if (text) return text;
   throw new Error(data?.error?.message || JSON.stringify(data));
 }
 
@@ -359,19 +365,19 @@ export default function App() {
     try {
       // Step 1: news
       setLoadingStep(t.loadingNews);
-      const newsText = await callClaude([{ role: "user", content: t.newsPrompt(topics) }]);
+      const newsText = await callClaude(t.newsPrompt(topics));
       const parsedNews = parseJSON(newsText, "articles");
       if (parsedNews) setNews(parsedNews);
 
       // Step 2: advice
       setLoadingStep(t.loadingAdvice);
-      const adviceText = await callClaude([{ role: "user", content: t.advicePrompt(topics, newsText) }]);
+      const adviceText = await callClaude(t.advicePrompt(topics, newsText));
       const parsedAdvice = parseJSON(adviceText, "advice");
       if (parsedAdvice) setAdvice(parsedAdvice);
 
       // Step 3: smart money accumulation
       setLoadingStep(t.loadingAccum);
-      const accumText = await callClaude([{ role: "user", content: t.accumPrompt(topics, newsText) }]);
+      const accumText = await callClaude(t.accumPrompt(topics, newsText));
       const parsedAccum = parseJSON(accumText, "accum");
       if (parsedAccum) setAccum(parsedAccum);
 
