@@ -242,31 +242,45 @@ function parseJSON(text, key) {
 // Try direct Anthropic API first (Claude.ai preview handles auth automatically),
 // then fall back to /api/claude proxy (for Vercel deployment).
 async function callClaude(body) {
-  const headers = { "Content-Type": "application/json" };
+  const directHeaders = {
+    "Content-Type": "application/json",
+    "anthropic-version": "2023-06-01",
+    "anthropic-beta": "web-search-2025-03-05",
+  };
+  const proxyHeaders = { "Content-Type": "application/json" };
 
+  let data;
+  let lastError;
+
+  // Try direct API first (Claude.ai preview)
   try {
     const res = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
-      headers,
+      headers: directHeaders,
       body: JSON.stringify(body),
     });
-    if (res.ok) return res.json();
-    const errJson = await res.json().catch(() => ({}));
-    throw new Error(errJson?.error?.message || `Direct API error ${res.status}`);
-  } catch (directErr) {
-    // Fallback to Vercel proxy
-    try {
-      const res = await fetch("/api/claude", {
-        method: "POST",
-        headers,
-        body: JSON.stringify(body),
-      });
-      if (res.ok) return res.json();
-      throw new Error(`Proxy error ${res.status}`);
-    } catch (proxyErr) {
-      throw new Error(`${directErr.message} | proxy: ${proxyErr.message}`);
-    }
+    data = await res.json();
+    if (Array.isArray(data?.content)) return data;
+    lastError = data?.error?.message || `Direct API: ${JSON.stringify(data)}`;
+  } catch (e) {
+    lastError = e.message;
   }
+
+  // Try proxy (Vercel)
+  try {
+    const res = await fetch("/api/claude", {
+      method: "POST",
+      headers: proxyHeaders,
+      body: JSON.stringify(body),
+    });
+    data = await res.json();
+    if (Array.isArray(data?.content)) return data;
+    lastError = data?.error?.message || `Proxy: ${JSON.stringify(data)}`;
+  } catch (e) {
+    lastError = e.message;
+  }
+
+  throw new Error(lastError || "No valid response from API");
 }
 
 // ─── Components ───────────────────────────────────────────────────────────────
