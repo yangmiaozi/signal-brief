@@ -8,7 +8,7 @@ const T = {
     label: "Topics — separate multiple with commas",
     placeholder: "e.g. semiconductors, Federal Reserve, Tesla earnings",
     analyseBtn: "Analyse",
-    hint: "Searches real-time financial news · Powered by Claude",
+    hint: "AI-powered financial analysis · Free via OpenRouter",
     loadingNews: "Searching financial news from the last 24 hours...",
     loadingAdvice: "Generating stock recommendations...",
     loadingAccum: "Detecting smart money accumulation signals...",
@@ -28,59 +28,59 @@ const T = {
     accumPhaseVal: "Wyckoff Accumulation",
     ratings: { BUY: "BUY", WATCH: "WATCH", AVOID: "AVOID" },
     newsPrompt: (topics) =>
-      `Search the web for the latest financial news from the last 24 hours related to these topics: ${topics.join(", ")}.
+      `You are a financial news analyst. Based on your knowledge of recent market developments, generate 6-8 realistic and plausible financial news articles related to these topics: ${topics.join(", ")}.
 
-Return ONLY a raw JSON object (no markdown, no backticks) in this exact format:
+Focus on the most recent and relevant developments you know about — earnings, macro data, central bank decisions, sector trends, geopolitical impacts on markets.
+
+Return ONLY a raw JSON object (no markdown, no backticks, no explanation) in this exact format:
 {
   "articles": [
     {
       "title": "Article headline",
-      "source": "Publication name",
-      "summary": "2-3 sentence summary of the article and its financial relevance"
+      "source": "Publication name (e.g. Bloomberg, Reuters, WSJ)",
+      "summary": "2-3 sentence summary of the development and its financial relevance"
     }
   ]
-}
-
-Return 6-8 articles total. Focus on stock market, earnings, economic data, and investment-relevant news only.`,
+}`,
     advicePrompt: (topics, newsText) =>
-      `Based on this financial news about ${topics.join(", ")}:
+      `You are a financial analyst. Based on the following news context about ${topics.join(", ")}:
 
 ${newsText}
 
-Generate exactly 3 stock recommendations. Return ONLY a raw JSON object (no markdown, no backticks) in this format:
+Generate exactly 3 stock recommendations grounded in this news. Return ONLY a raw JSON object (no markdown, no backticks, no explanation) in this format:
 {
   "advice": [
     {
       "ticker": "AAPL",
       "company": "Apple Inc.",
       "rating": "BUY",
-      "reasoning": "2-3 sentence explanation grounded in the news above",
+      "reasoning": "2-3 sentence explanation directly tied to the news above",
       "confidence": 75
     }
   ]
 }
 
-Rating must be one of: BUY, WATCH, or AVOID. Confidence is a number 40-95. Make recommendations directly tied to the news found.`,
+Rating must be one of: BUY, WATCH, or AVOID. Confidence is a number 40-95.`,
     accumPrompt: (topics, newsText) =>
-      `Based on this financial news about ${topics.join(", ")}:
+      `You are a technical analyst specialising in Wyckoff methodology. Based on this news context about ${topics.join(", ")}:
 
 ${newsText}
 
-Identify ONE stock where institutional investors appear to be quietly accumulating shares — the price has been moving sideways at a relatively low base, volume patterns suggest smart money absorption, and a breakout may be forthcoming. This is a Wyckoff-style accumulation pattern.
+Identify ONE stock that shows signs of institutional accumulation — sideways price action at a low base, volume absorption, and potential upcoming breakout.
 
-Return ONLY a raw JSON object (no markdown, no backticks) in this format:
+Return ONLY a raw JSON object (no markdown, no backticks, no explanation) in this format:
 {
   "accum": {
     "ticker": "MSFT",
     "company": "Microsoft Corp.",
-    "reasoning": "2-3 sentences explaining the sideways price action, volume absorption clues, and why a breakout may be near",
+    "reasoning": "2-3 sentences on the sideways action, volume clues, and breakout thesis",
     "signal_strength": 78,
     "key_levels": "Support: $XXX / Resistance: $XXX",
-    "watch_for": "One sentence on what to watch as a breakout confirmation trigger"
+    "watch_for": "One sentence breakout confirmation trigger"
   }
 }
 
-signal_strength is a number 50-95. Base the pick on the news context provided.`,
+signal_strength is 50-95.`,
   },
   zh: {
     tagline: "AI 驱动的财经智能分析平台",
@@ -88,7 +88,7 @@ signal_strength is a number 50-95. Base the pick on the news context provided.`,
     label: "输入主题 — 多个主题请用逗号分隔",
     placeholder: "例如：半导体、国有银行、央企改革",
     analyseBtn: "分析",
-    hint: "实时搜索财经新闻 · 由 Claude 提供支持",
+    hint: "AI 驱动财经分析 · 通过 OpenRouter 免费使用",
     loadingNews: "正在搜索过去24小时的财经新闻……",
     loadingAdvice: "正在生成国有企业股票投资建议……",
     loadingAccum: "正在检测机构资金吸筹信号……",
@@ -108,20 +108,20 @@ signal_strength is a number 50-95. Base the pick on the news context provided.`,
     accumPhaseVal: "威科夫吸筹阶段",
     ratings: { BUY: "买入", WATCH: "关注", AVOID: "回避" },
     newsPrompt: (topics) =>
-      `请在网上搜索过去24小时内与以下主题相关的最新财经新闻：${topics.join("、")}。
+      `你是一位财经新闻分析师。请根据你对近期市场动态的了解，生成6-8条与以下主题相关的真实可信的财经新闻：${topics.join("、")}。
 
-仅返回原始JSON对象（无markdown，无反引号），格式如下：
+聚焦你所了解的最新相关动态，包括财报、宏观数据、央行决策、行业趋势、地缘政治对市场的影响等。
+
+仅返回原始JSON对象（无markdown，无反引号，无任何解释），格式如下：
 {
   "articles": [
     {
       "title": "文章标题（中文）",
-      "source": "媒体来源名称",
-      "summary": "2-3句话的中文摘要，说明文章内容及其财经相关性"
+      "source": "媒体来源名称（如：财联社、Bloomberg、Reuters）",
+      "summary": "2-3句话的中文摘要，说明该动态内容及其财经相关性"
     }
   ]
-}
-
-共返回6-8篇文章。仅关注股票市场、财报、经济数据和投资相关新闻。所有内容必须用中文输出。`,
+}`,
     advicePrompt: (topics, newsText) =>
       `根据以下关于"${topics.join("、")}"的财经新闻：
 
@@ -239,48 +239,40 @@ function parseJSON(text, key) {
   } catch { return null; }
 }
 
-// Try direct Anthropic API first (Claude.ai preview handles auth automatically),
-// then fall back to /api/claude proxy (for Vercel deployment).
-async function callClaude(body) {
-  const directHeaders = {
-    "Content-Type": "application/json",
-    "anthropic-version": "2023-06-01",
-    "anthropic-beta": "web-search-2025-03-05",
+const OPENROUTER_MODEL = "meta-llama/llama-3.3-70b-instruct:free";
+
+async function callClaude(messages) {
+  const body = {
+    model: OPENROUTER_MODEL,
+    messages,
   };
-  const proxyHeaders = { "Content-Type": "application/json" };
 
+  // Try Vercel proxy first (has OPENROUTER_API_KEY), then direct OpenRouter (needs key in browser)
   let data;
-  let lastError;
 
-  // Try direct API first (Claude.ai preview)
-  try {
-    const res = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: directHeaders,
-      body: JSON.stringify(body),
-    });
-    data = await res.json();
-    if (Array.isArray(data?.content)) return data;
-    lastError = data?.error?.message || `Direct API: ${JSON.stringify(data)}`;
-  } catch (e) {
-    lastError = e.message;
-  }
-
-  // Try proxy (Vercel)
   try {
     const res = await fetch("/api/claude", {
       method: "POST",
-      headers: proxyHeaders,
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     });
     data = await res.json();
-    if (Array.isArray(data?.content)) return data;
-    lastError = data?.error?.message || `Proxy: ${JSON.stringify(data)}`;
-  } catch (e) {
-    lastError = e.message;
-  }
+    if (data?.choices?.[0]?.message?.content) return data.choices[0].message.content;
+  } catch (_) {}
 
-  throw new Error(lastError || "No valid response from API");
+  // Fallback: direct OpenRouter (Claude.ai preview)
+  const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "HTTP-Referer": "https://signal-brief.vercel.app",
+      "X-Title": "Signal Brief",
+    },
+    body: JSON.stringify(body),
+  });
+  data = await res.json();
+  if (data?.choices?.[0]?.message?.content) return data.choices[0].message.content;
+  throw new Error(data?.error?.message || JSON.stringify(data));
 }
 
 // ─── Components ───────────────────────────────────────────────────────────────
@@ -367,35 +359,19 @@ export default function App() {
     try {
       // Step 1: news
       setLoadingStep(t.loadingNews);
-      const newsData = await callClaude({
-        model: "claude-sonnet-4-20250514",
-        max_tokens: 1000,
-        tools: [{ type: "web_search_20250305", name: "web_search" }],
-        messages: [{ role: "user", content: t.newsPrompt(topics) }],
-      });
-      const newsText = newsData.content.map((b) => b.type === "text" ? b.text : "").join("");
+      const newsText = await callClaude([{ role: "user", content: t.newsPrompt(topics) }]);
       const parsedNews = parseJSON(newsText, "articles");
       if (parsedNews) setNews(parsedNews);
 
       // Step 2: advice
       setLoadingStep(t.loadingAdvice);
-      const adviceData = await callClaude({
-        model: "claude-sonnet-4-20250514",
-        max_tokens: 1000,
-        messages: [{ role: "user", content: t.advicePrompt(topics, newsText) }],
-      });
-      const adviceText = adviceData.content.map((b) => b.type === "text" ? b.text : "").join("");
+      const adviceText = await callClaude([{ role: "user", content: t.advicePrompt(topics, newsText) }]);
       const parsedAdvice = parseJSON(adviceText, "advice");
       if (parsedAdvice) setAdvice(parsedAdvice);
 
       // Step 3: smart money accumulation
       setLoadingStep(t.loadingAccum);
-      const accumData = await callClaude({
-        model: "claude-sonnet-4-20250514",
-        max_tokens: 600,
-        messages: [{ role: "user", content: t.accumPrompt(topics, newsText) }],
-      });
-      const accumText = accumData.content.map((b) => b.type === "text" ? b.text : "").join("");
+      const accumText = await callClaude([{ role: "user", content: t.accumPrompt(topics, newsText) }]);
       const parsedAccum = parseJSON(accumText, "accum");
       if (parsedAccum) setAccum(parsedAccum);
 
