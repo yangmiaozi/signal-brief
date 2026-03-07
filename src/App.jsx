@@ -242,10 +242,8 @@ function parseJSON(text, key) {
 const ANTHROPIC_URL = "https://api.anthropic.com/v1/messages";
 const OPENROUTER_MODEL = "meta-llama/llama-3.3-70b-instruct:free";
 
-// In Claude.ai preview: Anthropic API is handled automatically (no key needed)
-// On Vercel: /api/claude proxy forwards to OpenRouter using server-side API key
 async function callClaude(userContent) {
-  // Try Vercel proxy first (OpenRouter, free)
+  // Try Vercel proxy first (OpenRouter on server, free)
   try {
     const res = await fetch("/api/claude", {
       method: "POST",
@@ -262,13 +260,10 @@ async function callClaude(userContent) {
     }
   } catch (_) {}
 
-  // Fallback: Anthropic API directly (works in Claude.ai preview — auth auto-handled)
+  // Fallback: Anthropic API via Claude.ai artifact passthrough (no auth headers needed)
   const res = await fetch(ANTHROPIC_URL, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "anthropic-version": "2023-06-01",
-    },
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       model: "claude-haiku-4-5-20251001",
       max_tokens: 1500,
