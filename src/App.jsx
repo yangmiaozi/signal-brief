@@ -101,8 +101,11 @@ function parseJSON(text, key) {
 }
 
 async function callAPI(prompt) {
-  // Try Vercel proxy first (OpenRouter, free, server-side key)
-  try {
+  // Detect if we're in Claude.ai preview (no /api/claude proxy available)
+  const isPreview = window.location.hostname === "" || window.location.protocol === "blob:" || window.location.hostname.includes("claude.ai") || window.location.hostname.includes("anthropic");
+
+  if (!isPreview) {
+    // On Vercel — use OpenRouter proxy
     const res = await fetch("/api/claude", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -111,14 +114,13 @@ async function callAPI(prompt) {
         messages: [{ role: "user", content: prompt }],
       }),
     });
-    if (res.ok) {
-      const data = await res.json();
-      const text = data?.choices?.[0]?.message?.content;
-      if (text) return text;
-    }
-  } catch (_) {}
+    const data = await res.json();
+    const text = data?.choices?.[0]?.message?.content;
+    if (text) return text;
+    throw new Error("Proxy error: " + (data?.error?.message || JSON.stringify(data)));
+  }
 
-  // Fallback: direct Anthropic (Claude.ai artifact preview — auth handled automatically)
+  // Claude.ai preview — direct Anthropic (auth handled automatically)
   const res = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
