@@ -232,7 +232,7 @@ export default function App() {
       const accumText = await callAPI(t.accumPrompt(topics, newsText));
       setAccum(parseJSON(accumText, "accum"));
     } catch (e) {
-      setError(t.errorService);
+      setError(e.message || t.errorService);
     } finally {
       setLoading(false); setStep("");
     }
