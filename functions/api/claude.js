@@ -1,9 +1,9 @@
 const MODELS = [
+  "openrouter/free",
   "meta-llama/llama-3.3-70b-instruct:free",
-  "meta-llama/llama-3.1-8b-instruct:free",
-  "meta-llama/llama-3.2-3b-instruct:free",
-  "qwen/qwen-2-7b-instruct:free",
-  "microsoft/phi-3-mini-128k-instruct:free",
+  "deepseek/deepseek-chat-v3-0324:free",
+  "mistralai/mistral-small-3.1-24b-instruct:free",
+  "meta-llama/llama-4-scout:free",
 ];
 
 export async function onRequest(context) {
