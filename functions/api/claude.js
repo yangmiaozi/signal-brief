@@ -1,15 +1,6 @@
-const MODELS = [
-  "openrouter/free",
-  "meta-llama/llama-3.3-70b-instruct:free",
-  "deepseek/deepseek-chat-v3-0324:free",
-  "mistralai/mistral-small-3.1-24b-instruct:free",
-  "meta-llama/llama-4-scout:free",
-];
-
 export async function onRequest(context) {
   const { request, env } = context;
 
-  // Handle CORS preflight
   if (request.method === "OPTIONS") {
     return new Response(null, {
       headers: {
@@ -37,43 +28,46 @@ export async function onRequest(context) {
     });
   }
 
-  const apiKey = env.OPENROUTER_API_KEY;
-  let lastError = "";
-
-  for (const model of MODELS) {
-    try {
-      const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${apiKey}`,
-          "HTTP-Referer": "https://signal-brief.pages.dev",
-          "X-Title": "Signal Brief",
-        },
-        body: JSON.stringify({ ...body, model }),
-      });
-
-      const data = await response.json();
-      const text = data?.choices?.[0]?.message?.content;
-
-      if (text) {
-        return new Response(JSON.stringify(data), {
-          status: 200,
-          headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
-        });
-      }
-
-      lastError = `${model}: ${data?.error?.message || JSON.stringify(data).slice(0, 120)}`;
-    } catch (err) {
-      lastError = `${model}: ${err.message}`;
-    }
+  const apiKey = env.DEEPSEEK_API_KEY;
+  if (!apiKey) {
+    return new Response(
+      JSON.stringify({ error: "Missing DEEPSEEK_API_KEY environment variable" }),
+      { status: 500, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } }
+    );
   }
 
-  return new Response(
-    JSON.stringify({ error: "All models failed", detail: lastError }),
-    {
-      status: 500,
-      headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
+  try {
+    const response = await fetch("https://api.deepseek.com/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: "deepseek-chat",
+        messages: body.messages,
+        max_tokens: 1500,
+      }),
+    });
+
+    const data = await response.json();
+    const text = data?.choices?.[0]?.message?.content;
+
+    if (text) {
+      return new Response(JSON.stringify(data), {
+        status: 200,
+        headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
+      });
     }
-  );
+
+    return new Response(
+      JSON.stringify({ error: data?.error?.message || JSON.stringify(data) }),
+      { status: 500, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } }
+    );
+  } catch (err) {
+    return new Response(
+      JSON.stringify({ error: err.message }),
+      { status: 500, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } }
+    );
+  }
 }

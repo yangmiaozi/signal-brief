@@ -12,6 +12,7 @@ const T = {
     loadingAdvice: "Generating stock recommendations...",
     loadingAccum: "Detecting smart money signals...",
     error: "Something went wrong. Please try again.",
+    errorService: "The analysis service is temporarily unavailable. Please try again in a moment.",
     newsSection: "Latest News",
     newsCount: (n) => `${n} articles · last 24 hrs`,
     adviceSection: "Stock Recommendations",
@@ -52,6 +53,7 @@ Identify ONE stock showing institutional accumulation (sideways price, smart mon
     loadingAdvice: "正在生成国有企业股票投资建议……",
     loadingAccum: "正在检测机构资金吸筹信号……",
     error: "出现错误，请稍后重试。",
+    errorService: "分析服务暂时不可用，请稍后再试。",
     newsSection: "最新资讯",
     newsCount: (n) => `共 ${n} 篇`,
     adviceSection: "国企股票投资建议",
@@ -100,27 +102,34 @@ function parseJSON(text, key) {
   } catch { return null; }
 }
 
+// Error types for clean user messaging
+class ServiceError extends Error {
+  constructor(msg) { super(msg); this.isServiceError = true; }
+}
+
 async function callAPI(prompt) {
-  // Detect if we're in Claude.ai preview (no /api/claude proxy available)
-  const isPreview = window.location.hostname === "" || window.location.protocol === "blob:" || window.location.hostname.includes("claude.ai") || window.location.hostname.includes("anthropic");
+  // Detect Claude.ai preview environment
+  const isPreview = window.location.hostname === "" ||
+    window.location.protocol === "blob:" ||
+    window.location.hostname.includes("claude.ai") ||
+    window.location.hostname.includes("anthropic");
 
   if (!isPreview) {
-    // On Vercel — use OpenRouter proxy
+    // On EdgeOne/Vercel — use DeepSeek proxy
     const res = await fetch("/api/claude", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: "meta-llama/llama-3.3-70b-instruct:free",
-        messages: [{ role: "user", content: prompt }],
-      }),
+      body: JSON.stringify({ messages: [{ role: "user", content: prompt }] }),
     });
     const data = await res.json();
     const text = data?.choices?.[0]?.message?.content;
     if (text) return text;
-    throw new Error("Proxy error: " + (data?.error?.message || JSON.stringify(data)));
+    // Surface a clean error — hide raw API details from users
+    const msg = data?.error || "";
+    throw new ServiceError(typeof msg === "string" ? msg : JSON.stringify(msg));
   }
 
-  // Claude.ai preview — direct Anthropic (auth handled automatically)
+  // Claude.ai preview — direct Anthropic (auth handled automatically by Claude.ai)
   const res = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -133,7 +142,7 @@ async function callAPI(prompt) {
   const data = await res.json();
   const text = data?.content?.find((b) => b.type === "text")?.text;
   if (text) return text;
-  throw new Error(data?.error?.message || "No response");
+  throw new ServiceError(data?.error?.message || "No response");
 }
 
 function Bar({ pct, color }) {
@@ -223,7 +232,7 @@ export default function App() {
       const accumText = await callAPI(t.accumPrompt(topics, newsText));
       setAccum(parseJSON(accumText, "accum"));
     } catch (e) {
-      setError(e.message || t.error);
+      setError(t.errorService);
     } finally {
       setLoading(false); setStep("");
     }
@@ -270,7 +279,15 @@ export default function App() {
         </div>
         <div style={S.hint}>{t.hint}</div>
 
-        {error && <div style={S.err}>⚠ {error}</div>}
+        {error && (
+          <div style={{ backgroundColor: "#FFFBF0", border: `1px solid ${C.watch}`, borderRadius: 6, padding: "16px 20px", marginBottom: 24, display: "flex", alignItems: "flex-start", gap: 12 }}>
+            <span style={{ fontSize: 18, lineHeight: 1 }}>🔧</span>
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: C.text, marginBottom: 4 }}>{lang === "zh" ? "服务暂时不可用" : "Service Unavailable"}</div>
+              <div style={{ fontSize: 12, color: C.muted, fontFamily: "monospace" }}>{error}</div>
+            </div>
+          </div>
+        )}
         {loading && <div style={S.status}><span style={S.dot2} />{step}</div>}
 
         {news?.length > 0 && (
